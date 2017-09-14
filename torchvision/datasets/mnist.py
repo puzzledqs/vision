@@ -27,7 +27,6 @@ class MNIST(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.train = train  # training set or test set
-
         if download:
             self.download()
 
@@ -116,6 +115,54 @@ class MNIST(data.Dataset):
 
         print('Done!')
 
+class FashionMNIST(MNIST):
+    '''Fashion-mnist'''
+    def __init__(self, *args, **kwargs):
+        super(FashionMNIST, self).__init__(*args, **kwargs)
+
+    def download(self):
+        from six.moves import urllib
+        import gzip
+
+        if self._check_exists():
+            return
+        # download files
+        try:
+            os.makedirs(os.path.join(self.root, self.raw_folder))
+            os.makedirs(os.path.join(self.root, self.processed_folder))
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            else:
+                raise
+
+        for url in self.urls:
+            #print('Downloading ' + url)
+            #data = urllib.request.urlopen(url)
+            filename = url.rpartition('/')[2]
+            file_path = os.path.join(self.root, self.raw_folder, filename)
+            #with open(file_path, 'wb') as f:
+            #    f.write(data.read())
+            with open(file_path.replace('.gz', ''), 'wb') as out_f, \
+                    gzip.GzipFile(file_path) as zip_f:
+                out_f.write(zip_f.read())
+            os.unlink(file_path)
+
+        # assuming all data files already
+        training_set = (
+            read_image_file(os.path.join(self.root, self.raw_folder, 'train-images-idx3-ubyte')),
+            read_label_file(os.path.join(self.root, self.raw_folder, 'train-labels-idx1-ubyte'))
+        )
+        test_set = (
+            read_image_file(os.path.join(self.root, self.raw_folder, 't10k-images-idx3-ubyte')),
+            read_label_file(os.path.join(self.root, self.raw_folder, 't10k-labels-idx1-ubyte'))
+        )
+        with open(os.path.join(self.root, self.processed_folder, self.training_file), 'wb') as f:
+            torch.save(training_set, f)
+        with open(os.path.join(self.root, self.processed_folder, self.test_file), 'wb') as f:
+            torch.save(test_set, f)
+
+        print('Done!')
 
 def get_int(b):
     return int(codecs.encode(b, 'hex'), 16)
